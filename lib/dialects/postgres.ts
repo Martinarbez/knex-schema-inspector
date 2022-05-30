@@ -42,6 +42,9 @@ type RawColumn = {
   table_name: string;
   table_schema: string;
   data_type: string;
+  udt_name: string;
+  type: string;
+  srid: number;
   column_default: any | null;
   character_maximum_length: number | null;
   is_generated: 'NEVER' | 'ALWAYS';
@@ -60,7 +63,7 @@ type RawColumn = {
 };
 
 export function rawColumnToColumn(rawColumn: RawColumn): Column {
-  return {
+  const result = {
     name: rawColumn.column_name,
     table: rawColumn.table_name,
     data_type: rawColumn.data_type,
@@ -85,6 +88,12 @@ export function rawColumnToColumn(rawColumn: RawColumn): Column {
     foreign_key_table: rawColumn.foreign_key_table,
     foreign_key_column: rawColumn.foreign_key_column,
   };
+
+  if (rawColumn.udt_name === 'geometry') {
+    result.data_type = `${rawColumn.table_schema}.${rawColumn.udt_name}(${rawColumn.type}, ${rawColumn.srid})`;
+  }
+
+  return result;
 }
 
 /**
@@ -312,6 +321,9 @@ export default class Postgres implements SchemaInspector {
         'c.table_schema',
         'c.is_identity',
         'c.generation_expression',
+        'c.udt_name',
+        'f.type',
+        'f.srid',
 
         knex.raw(
           'pg_get_serial_sequence(quote_ident(c.table_name), c.column_name) as serial'
@@ -329,6 +341,12 @@ export default class Postgres implements SchemaInspector {
         'ffk.foreign_key_column'
       )
       .from(knex.raw('information_schema.columns c'))
+      .joinRaw(
+        `
+        LEFT JOIN geometry_columns AS f
+        ON c.column_name= f.f_geometry_column
+      `
+      )
       .joinRaw(
         `
         LEFT JOIN pg_catalog.pg_class
