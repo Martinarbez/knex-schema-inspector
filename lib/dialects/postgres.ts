@@ -344,7 +344,7 @@ export default class Postgres implements SchemaInspector {
       .joinRaw(
         `
         LEFT JOIN geometry_columns AS f
-        ON c.column_name= f.f_geometry_column
+        ON c.table_name= f.f_table_name
       `
       )
       .joinRaw(
@@ -405,7 +405,7 @@ export default class Postgres implements SchemaInspector {
 
       return rawColumnToColumn(rawColumn);
     }
-
+    console.log(query.toSQL().toNative());
     const records: RawColumn[] = await query;
 
     return records.map(rawColumnToColumn);
