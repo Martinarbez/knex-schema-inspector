@@ -405,7 +405,7 @@ export default class Postgres implements SchemaInspector {
 
       return rawColumnToColumn(rawColumn);
     }
-    console.log(query.toSQL().toNative());
+
     const records: RawColumn[] = await query;
 
     return records.map(rawColumnToColumn);
